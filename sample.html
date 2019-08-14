@@ -1,0 +1,187 @@
+
+
+<script src="https://uat2.enets.sg/demo/assets/js/jquery-1.12.4.min.js"></script>
+<script src="https://uat2.enets.sg/demo/assets/js/sha256.js"></script>
+<script src="https://uat2.enets.sg/demo/assets/js/moment.js"></script>
+<script src="https://uat2.enets.sg/demo/assets/js/soapi.js"></script>
+<script>
+
+
+  $(document).ready(function() {
+
+
+    var openwith = 'hosted';
+    var mode = 'Production';
+    var umid = 'UMID_XXX';
+    var apikey = 'AAA';
+    var apiSecret = 'BBB';
+
+
+    $('#netsbtn').click(function() {
+
+    	if(checkFields()){
+
+    		data = $('#donationform').serialize();
+    		$.ajax({
+					method: "POST",
+					url: '../wp-json/donation/submit',
+					data: data,
+					success : function( response ) {
+						// console.log( response );
+						$('#txid').val(response);
+
+
+						 var continueFlag = true;
+     var amount = $('#amount').val();
+     var hostedURL;
+     var dt = new Date();
+     var merchantTxnDtm = moment().format('YYYYMMDD hh:mm:ss.SSS');
+     var merchantTxnRef = moment().format('YYYYMMDD hh:mm:ss');
+
+     var script1 = document.createElement("SCRIPT");
+     var script2 = document.createElement("SCRIPT");
+     var script1Loaded = false;
+     var script2Loaded = false;
+
+     amount = amount * 100;
+
+     if (mode == 'UAT') {
+      console.log($('#mode').val())
+      script1.src = 'https://uat2.enets.sg/GW2/pluginpages/env.jsp';
+      document.getElementsByTagName('head')[0].appendChild(script1);
+
+      script1.onload = function() {
+        script2.src = 'https://uat2.enets.sg/GW2/js/apps.js';
+        script2.type = 'text/javascript';
+        document.getElementsByTagName('head')[0].appendChild(script2);
+      };
+      hostedURL = 'https://uat2.enets.sg/GW2/TxnReqListenerToHost';
+
+    } else if (mode == "Production") {
+      console.log($('#mode').val())
+      script1.src = 'https://www2.enets.sg/GW2/pluginpages/env.jsp';
+      document.getElementsByTagName('head')[0].appendChild(script1);
+
+      script1.onload = function() {
+        script2.src = 'https://www2.enets.sg/GW2/js/apps.js';
+        script2.type = 'text/javascript';
+        document.getElementsByTagName('head')[0].appendChild(script2);
+      };
+      hostedURL = 'https://www2.enets.sg/GW2/TxnReqListenerToHost';
+    }
+    var data = JSON.stringify({"ss":"1","msg":{"netsMid":umid,"tid":"","submissionMode":"B","txnAmount":amount,"merchantTxnRef":merchantTxnRef,"merchantTxnDtm":merchantTxnDtm,"paymentType":"SALE","currencyCode":"SGD","paymentMode":"","merchantTimeZone":"+8:00","b2sTxnEndURL":"http://www.darul-arqam.org.sg/wp-json/netsverify","b2sTxnEndURLParam":"","s2sTxnEndURL":"http://www.darul-arqam.org.sg/wp-json/netsverify","s2sTxnEndURLParam":"","clientType":"W","supMsg":"","netsMidIndicator":"U","ipAddress":"127.0.0.1","language":"en","param1":response}});
+
+    console.log(data+apiSecret);
+
+    var sign = btoa(sha256(data + apiSecret).match(/\w{2}/g).map(function (a) {
+      return String.fromCharCode(parseInt(a, 16));
+    }).join(''));
+
+    console.log(sign);
+
+    if (openwith == "current") {
+      script2.onload = function() {
+        sendPayLoad(data, sign, apikey);
+      };
+    } else if (openwith == "hosted") {
+      var newForm = jQuery('<form>', {
+        'action': hostedURL,
+        'method': 'POST',
+        'name': "eNETSRedirectForm",
+        'id': 'eNETSRedirectForm'
+      }).append(jQuery('<input>', {
+        'type': 'hidden',
+        'id': 'payload',
+        'name': 'payload',
+        'value': data
+      })).append(jQuery('<input>', {
+        'type': 'hidden',
+        'id': 'apiKey',
+        'name': 'apiKey',
+        'value': apikey
+      })).append(jQuery('<input>', {
+        'type': 'hidden',
+        'id': 'hmac',
+        'name': 'hmac',
+        'value': sign
+      }));
+      $(document.body).append(newForm);
+
+      $(newForm).submit();
+
+    }
+
+    waitForElement("#qr_image", function(){
+      var str = $('#qr_image img').attr('src');
+      console.log($('#qr_image img').attr('src'));
+      console.log(str.substring(45));
+      $('#netspay_image').html('<a href="netspay://payment/?source=com.nets.netspay&amp;urlscheme=https://httpbin.org/get&amp;qrdata=' + str.substring(45) + '"> <img class="hidden-md hidden-lg" height="180" width="180" " src="./assets/images/netspay.png" /></a><h4>Click To Pay!</h4>');
+      $('.payment-section').toggleClass('hidden-xs hidden-sm')
+    });
+
+    $(this).hide();
+    $('#soapi-time').hide();
+					},
+					fail : function( response ) {
+						console.log( response );
+					}
+				});
+
+    		 //evt.preventDefault();
+    
+
+    	} 
+
+    
+  });
+  });
+
+  function waitForElement(elementPath, callBack){
+    window.setTimeout(function(){
+      if($(elementPath).length){
+        callBack(elementPath, $(elementPath));
+      }else{
+        waitForElement(elementPath, callBack);
+      }
+    },500)
+  }; </script>
+<script>
+	$('#select-all').click(function(event) {   
+		if(this.checked) {
+        // Iterate each checkbox
+        $('.asnaf').each(function() {
+        	this.checked = true;                        
+        });
+    } else {
+    	$('.asnaf').each(function() {
+    		this.checked = false;                       
+    	});
+    }
+});
+
+
+	$('#ppbtn').click(function(){
+		if(checkFields()){
+		$('#ppgw').show();
+		$('#netsbtn').hide();
+	}
+	})
+	$('#netsbtn').click(function(){
+		$('#paymentmethod').val('enets');
+		$('#netsgw').show();
+		$('#ppbtn').hide();
+	
+	})
+
+$(document).ready(function(){
+  $('#amount').blur(function(){
+    var num = parseFloat($(this).val());
+    var cleanNum = num.toFixed(2);
+    $(this).val(cleanNum);
+  });
+
+
+
+});
+
+</script>
